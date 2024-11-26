@@ -41,6 +41,18 @@ recipe_setup_arch() {
 }
 
 recipe_prepare_arch() {
+    echo -n "Replacing the pkgrel release tag @RELEASE@ with "
+    # get the first digits (should be <CI_CNT>)
+    # only a positive integer is allowed, remove leading zeros
+    ARCH_RELEASE=`sed 's/^0*//;s/[^0-9].*//' <<< "$RELEASE"`
+    [ -z "$ARCH_RELEASE" ] && ARCH_RELEASE=1
+    echo "$ARCH_RELEASE"
+    chroot $BUILD_ROOT su -c /bin/sh <<EOF
+cd $TOPDIR/SOURCES
+[ ! -f PKGBUILD ] && exit 0
+sed -i "s/^pkgrel=@RELEASE@$/pkgrel=$ARCH_RELEASE/" PKGBUILD
+EOF
+
     echo "Preparing sources..."
     if ! _arch_recipe_makepkg -so --skippgpcheck "2>&1" ">/dev/null" ; then
 	cleanup_and_exit 1 "failed to prepare sources"
